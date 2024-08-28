@@ -1,0 +1,8 @@
+streamlit
+psycopg2
+sqlalchemy
+pandas
+tiktoken
+openai
+python-dotenv
+asyncio

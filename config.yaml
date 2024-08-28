@@ -1,0 +1,15 @@
+credentials:
+  usernames:
+    testuser:
+      email: testuser@example.com
+      name: Test User
+      password: testpassword
+
+cookie:
+  name: test_cookie_name
+  key: test_cookie_key
+  expiry_days: 1
+
+
+
+

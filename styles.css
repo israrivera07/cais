@@ -1,0 +1,46 @@
+/* styles.css */
+
+/* Encabezado */
+.header {
+    background-color: #004d40; /* Verde oscuro */
+    color: #ffffff; /* Texto blanco */
+    padding: 10px;
+    text-align: center;
+    border-bottom: 2px solid #e0f7fa; /* Borde azul claro */
+    position: fixed;
+    width: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1000; /* Asegura que el encabezado esté sobre otros elementos */
+    height: 80px; /* Ajustar altura del encabezado */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Pie de página */
+.footer {
+    background-color: #004d40; /* Verde oscuro */
+    padding: 10px;
+    color: white;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    border-top: 2px solid #e0f7fa; /* Borde azul claro */
+    z-index: 1000; /* Asegura que el pie de página esté sobre otros elementos */
+}
+
+/* Contenido principal */
+.main-content {
+    margin-top: 100px; /* Ajustar según el tamaño del encabezado */
+    margin-bottom: 60px; /* Ajustar según el tamaño del pie de página */
+    padding: 20px;
+}
+
+/* Logo */
+.logo {
+    max-width: 150px; /* Ajustar tamaño del logo */
+    height: auto;
+    margin-right: 20px; /* Espacio entre el logo y el texto */
+}

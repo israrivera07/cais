@@ -1,0 +1,8 @@
+.Ds_Store
+.env
+.venv
+data/local
+
+#Ignore rust build artifacts
+**/target
+Cargo.lock
