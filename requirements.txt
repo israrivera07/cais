@@ -6,3 +6,4 @@ tiktoken
 openai
 python-dotenv
 asyncio
+graphrag
