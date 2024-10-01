@@ -101,7 +101,7 @@ def show_login_form():
                     # Mostrar pantalla de carga
                     show_loading_screen()
 
-                    st.experimental_rerun()
+                    st.rerun()
                 else:
                     st.error("Nombre de usuario o contraseña incorrectos")
 
@@ -184,7 +184,7 @@ def chatbot_interface():
                     st.error("Error: No se ha asignado medico_id al paciente.")
 
                 # Volver a cargar la aplicación para reflejar los cambios
-                st.experimental_rerun()
+                st.rerun()
     
     # Mostrar el historial de la conversación
     with conversation_placeholder:
@@ -228,7 +228,7 @@ def chatbot_interface():
             st.error("Error: No se ha asignado medico_id al paciente.")
 
         # Volver a cargar la aplicación para reflejar los cambios
-        st.experimental_rerun()
+        st.rerun()
 
 
 def medico_interface():
@@ -320,7 +320,7 @@ def medico_interface():
                     
                 delete_appointment(st.session_state.username, selected_patient_username, appointment_date, appointment_time)
                 st.success("Cita eliminada con éxito.")
-                st.experimental_rerun()
+                st.rerun()
         else:
             st.write("No tienes citas programadas.")
 
@@ -338,7 +338,7 @@ def medico_interface():
             if patient_to_delete_username:
                 delete_patient(patient_to_delete_username)
                 st.success(f"Paciente {patient_to_delete_username} ha sido eliminado con éxito.")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Por favor, selecciona un paciente para eliminar")
 
@@ -372,7 +372,7 @@ def medico_interface():
             st.session_state.history = []
             st.session_state.short_term_memory = []
             st.session_state.medico_id = None
-            st.experimental_rerun()
+            st.rerun()
 
 def supervisor_interface():
     # Cargar el logo
@@ -422,7 +422,7 @@ def supervisor_interface():
             if medico_to_delete:
                 delete_medico(medico_to_delete)
                 st.success(f"Médico {medico_to_delete} ha sido eliminado con éxito.")
-                st.experimental_rerun()
+                st.rerun()
             else:
                 st.error("Por favor, selecciona un médico para eliminar")
 
@@ -449,7 +449,7 @@ def supervisor_interface():
             st.session_state.history = []
             st.session_state.short_term_memory = []
             st.session_state.medico_id = None
-            st.experimental_rerun()
+            st.rerun()
 
 
 def get_medico_id_for_patient(patient_username):
@@ -508,7 +508,7 @@ def paciente_interface():
             if st.button("Ir al Chatbot"):
                 st.session_state.option = "Chatbot"
                 st.session_state.first_login = False
-                st.experimental_rerun()
+                st.rerun()
                 st.markdown(card_html, unsafe_allow_html=True)
 
         with col2:
@@ -522,7 +522,7 @@ def paciente_interface():
             if st.button("Ir a Ver Citas"):
                 st.session_state.option = "Ver Citas"
                 st.session_state.first_login = False
-                st.experimental_rerun()
+                st.rerun()
                 st.markdown(card_html, unsafe_allow_html=True)
 
         with col3:
@@ -536,7 +536,7 @@ def paciente_interface():
             if st.button("Ir al Historial de Preguntas"):
                 st.session_state.option = "Ver Historial de Preguntas"
                 st.session_state.first_login = False
-                st.experimental_rerun()
+                st.rerun()
                 st.markdown(card_html, unsafe_allow_html=True)
 
     # Dashboard refinado
@@ -618,7 +618,7 @@ def paciente_interface():
             st.session_state.history = []
             st.session_state.short_term_memory = []
             st.session_state.medico_id = None
-            st.experimental_rerun()
+            st.rerun()
 
 
 if __name__ == "__main__":
