@@ -36,11 +36,11 @@ def main():
             paciente_interface()
 
         elif st.session_state.role == "medico":
-            st.write("Bienvenido {get_real_name(st.session_state.username)}!")
+            st.write("Bienvenido Médico!")
             medico_interface()
 
         elif st.session_state.role == "supervisor":
-            st.write("Bienvenido {get_real_name(st.session_state.username)}!")
+            st.write("Bienvenido Supervisor!")
             supervisor_interface()
 
         else:
@@ -73,7 +73,7 @@ def show_login_form():
 
     # HTML y CSS para el título
     title_html = """
-    <h1 style="text-align: center; font-size: 50px; font-weight: bold; color: black; margin-top: 20px; margin-bottom: 20px;">
+    <h1 style="text-align: center; font-size: 50px; font-weight: bold; color: white; margin-top: 20px; margin-bottom: 20px;">
         CAIS - Care AI System (DEMO)
     </h1>
     """
@@ -468,9 +468,6 @@ def paciente_interface():
     logo.save(buffered, format="PNG")
     logo_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-    # Bienvenida Personalizada
-    st.markdown(f"<h1 style='text-align: center; color: #4CAF50;'>Bienvenido, {st.session_state.username}!</h1>", unsafe_allow_html=True)
-    
     # Sidebar con logo y opciones generales
     with st.sidebar:
         logo_html = f"""
@@ -480,12 +477,24 @@ def paciente_interface():
         """
         st.markdown(logo_html, unsafe_allow_html=True)
         st.write("CAIS - Care AI System")
-        option = st.selectbox("FUNCIONES DE PACIENTE", ["Dashboard", "Chatbot", "Ver Citas", "Ver Historial de Preguntas"])
 
-    # Dashboard con tres ventanas interactivas
-    if option == "Dashboard":
-        st.markdown("<h2 style='text-align: center; color: #4CAF50;'>Selecciona una opción para comenzar:</h2>", unsafe_allow_html=True)
+        # Definir las opciones de funcionalidad
+        options = ["Dashboard", "Chatbot", "Ver Citas", "Ver Historial de Preguntas"]
+        
+        # Manejar el valor por defecto del selectbox
+        option = st.selectbox(
+            "FUNCIONES DE PACIENTE",
+            options,
+            index=options.index(st.session_state.get("option", "Dashboard"))
+        )
+        st.session_state.option = option
 
+    # Mostrar bienvenida inicial
+    if st.session_state.get("first_login", True):
+        st.session_state.option = None
+        st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Bienvenido!</h1>", unsafe_allow_html=True)
+
+        # Botones de bienvenida
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -498,8 +507,9 @@ def paciente_interface():
             """
             if st.button("Ir al Chatbot"):
                 st.session_state.option = "Chatbot"
+                st.session_state.first_login = False
                 st.experimental_rerun()
-            st.markdown(card_html, unsafe_allow_html=True)
+                st.markdown(card_html, unsafe_allow_html=True)
 
         with col2:
             card_html = """
@@ -511,8 +521,9 @@ def paciente_interface():
             """
             if st.button("Ir a Ver Citas"):
                 st.session_state.option = "Ver Citas"
+                st.session_state.first_login = False
                 st.experimental_rerun()
-            st.markdown(card_html, unsafe_allow_html=True)
+                st.markdown(card_html, unsafe_allow_html=True)
 
         with col3:
             card_html = """
@@ -524,22 +535,61 @@ def paciente_interface():
             """
             if st.button("Ir al Historial de Preguntas"):
                 st.session_state.option = "Ver Historial de Preguntas"
+                st.session_state.first_login = False
                 st.experimental_rerun()
-            st.markdown(card_html, unsafe_allow_html=True)
+                st.markdown(card_html, unsafe_allow_html=True)
 
-    # Interfaz del Chatbot
-    if option == "Chatbot" or st.session_state.get("option") == "Chatbot":
-        st.session_state.option = "Chatbot"
+    # Dashboard refinado
+    if st.session_state.option == "Dashboard" or not st.session_state.get("option"):
+        # Establecer opción por defecto al dashboard
+        st.session_state.option = "Dashboard"
+
+        # Obtener nombre real del paciente
+        real_name = get_real_name(st.session_state.username)
+
+        # Obtener ID del médico asignado al paciente
+        medico_id = get_medico_id_from_database(st.session_state.username)
+
+        # Obtener el nombre del médico
+        medico_name = get_real_name(medico_id) if medico_id else "No asignado"
+
+        # Recuadros estéticos
+        col1, col2 = st.columns(2)
+
+        # Recuadro para el nombre del paciente
+        with col1:
+            st.markdown(f"<div style='background-color:#E8F5E9; padding: 10px; border-radius: 5px;'>"
+                        f"<h2 style='text-align: center; color: #4CAF50;'>Paciente: {real_name}</h2>"
+                        f"</div>", unsafe_allow_html=True)
+
+        # Recuadro para el nombre del médico asignado
+        with col2:
+            st.markdown(f"<div style='background-color:#E8F5E9; padding: 10px; border-radius: 5px;'>"
+                        f"<h3 style='text-align: center; color: #4CAF50;'>Médico Asignado: {medico_name}</h3>"
+                        f"</div>", unsafe_allow_html=True)
+
+        # Obtener las preguntas del paciente
+        questions = get_patient_questions(st.session_state.username, medico_id)
+        last_five_questions = questions[-5:] if questions else []
+
+        # Recuadro con scroll para las preguntas
+        st.markdown("<h3 style='text-align: center;'>Últimas 5 preguntas:</h3>", unsafe_allow_html=True)
+        with st.expander("Ver Preguntas"):
+            for q in last_five_questions:
+                st.write(f"**Pregunta:** {q['question']}")
+                st.write(f"*Fecha:* {q['timestamp']}")
+                st.write("---")
+
+    # Opciones funcionales del paciente
+    elif st.session_state.option == "Chatbot":
         st.write("### Chatbot")
-        st.session_state.medico_id = get_medico_id_for_patient(st.session_state.username)
+        st.session_state.medico_id = get_medico_id_from_database(st.session_state.username)
         if not st.session_state.medico_id:
             st.error("No se pudo encontrar el médico asignado para el paciente.")
         else:
             chatbot_interface()
     
-    # Interfaz para Ver Citas
-    elif option == "Ver Citas" or st.session_state.get("option") == "Ver Citas":
-        st.session_state.option = "Ver Citas"
+    elif st.session_state.option == "Ver Citas":
         st.write("### Mis Citas")
         appointments = get_patient_appointments(st.session_state.username)
         if appointments:
@@ -548,9 +598,7 @@ def paciente_interface():
         else:
             st.write("No tienes citas programadas.")
     
-    # Interfaz para Ver Historial de Preguntas
-    elif option == "Ver Historial de Preguntas" or st.session_state.get("option") == "Ver Historial de Preguntas":
-        st.session_state.option = "Ver Historial de Preguntas"
+    elif st.session_state.option == "Ver Historial de Preguntas":
         st.write("### Historial de Preguntas")
         questions = get_patient_questions(st.session_state.username, st.session_state.medico_id)
         if questions:
@@ -571,8 +619,6 @@ def paciente_interface():
             st.session_state.short_term_memory = []
             st.session_state.medico_id = None
             st.experimental_rerun()
-
-
 
 
 if __name__ == "__main__":
