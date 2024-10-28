@@ -7,8 +7,8 @@ def get_db_connection():
         dbname="mydatabase",
         user="postgres",
         password="isra7303",
-        host="6.tcp.eu.ngrok.io",  # Cambia localhost por la URL de ngrok
-        port="16922",               # Cambia el puerto por el que te ha dado ngrok
+        host="2.tcp.eu.ngrok.io",  # Cambia localhost por la URL de ngrok
+        port="19115",               # Cambia el puerto por el que te ha dado ngrok
         options='-c client_encoding=UTF8'
     )
 
@@ -281,6 +281,69 @@ def get_medico_id_from_database(patient_username):
     else:
         return None
 
+
+def obtener_estado_formulario(usuario):
+    conn = get_db_connection()
+    """
+    Verifica en la base de datos si el usuario ya ha completado el formulario.
+    Retorna True si el formulario ha sido completado, de lo contrario False.
+    """
+    try:
+        with conn.cursor() as cur:
+            query = sql.SQL("SELECT formulario FROM public.users WHERE username = %s")
+            cur.execute(query, (usuario,))
+            result = cur.fetchone()
+            return result[0] if result else False  # Devuelve el valor booleano de 'formulario' o False si no se encuentra el usuario
+    except Exception as e:
+        print(f"Error al verificar el estado del formulario: {e}")
+        return False
+
+def guardar_respuesta_formulario(usuario, rol, satisfaccion, funcionalidad, usabilidad, mejoras):
+    """
+    Inserta la respuesta del formulario en la tabla respuestasformulario.
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            query = sql.SQL("""
+                INSERT INTO public.respuestasformulario (username, role, satisfaccion, funcionalidad, usabilidad, mejoras, fecha)
+                VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+            """)
+            cur.execute(query, (usuario, rol, satisfaccion, funcionalidad, usabilidad, mejoras))
+            conn.commit()
+            print("Formulario guardado con éxito.")
+    except Exception as e:
+        print(f"Error al guardar el formulario: {e}")
+        conn.rollback()
+
+def actualizar_estado_formulario(usuario):
+    """
+    Actualiza el estado del formulario en la tabla de usuarios a True, indicando que el formulario ha sido completado.
+    """
+    conn = get_db_connection()
+    try:
+        with conn.cursor() as cur:
+            query = sql.SQL("UPDATE public.users SET formulario = TRUE WHERE username = %s")
+            cur.execute(query, (usuario,))
+            conn.commit()
+            print("Estado de formulario actualizado exitosamente.")
+    except Exception as e:
+        print(f"Error al actualizar el estado del formulario: {e}")
+        conn.rollback()
+
+
+# Función para obtener respuestas de formulario por rol
+def obtener_respuestas_formulario_por_rol(rol):
+    conn = get_db_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("""
+            SELECT satisfaccion, funcionalidad, usabilidad, mejoras
+            FROM respuestasformulario
+            WHERE role = %s
+        """, (rol,))
+        respuestas = cursor.fetchall()
+    conn.close()
+    return [{"satisfaccion": r[0], "funcionalidad": r[1], "usabilidad": r[2], "mejoras": r[3]} for r in respuestas]
 
 
 

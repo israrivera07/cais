@@ -7,9 +7,14 @@ from utils.auth import (
     authenticate_user, create_user, get_real_name, 
     get_patients_of_medico, get_all_medicos, create_appointment, 
     get_appointments, get_patient_appointments, get_all_patients_of_medico, 
-    get_all_medical_appointments, delete_medico, delete_patient, delete_appointment, get_patient_questions, add_question, get_medico_id_from_database
+    get_all_medical_appointments, delete_medico, delete_patient, delete_appointment, get_patient_questions, add_question, get_medico_id_from_database, obtener_estado_formulario, guardar_respuesta_formulario, actualizar_estado_formulario,
+    obtener_respuestas_formulario_por_rol
 )
 import asyncio
+from io import BytesIO
+from PIL import Image
+import base64
+import matplotlib.pyplot as plt
 from chatbot.chatbot import get_answer
 
 # Inicializar session_state si no está presente
@@ -251,7 +256,7 @@ def medico_interface():
         """
         st.markdown(logo_html, unsafe_allow_html=True)
         st.write("CAIS - Care AI System")
-        option = st.selectbox("FUNCIONES DE MÉDICO", ["Crear Paciente", "Ver Pacientes", "Gestionar Citas", "Eliminar Citas", "Eliminar Paciente", "Ver Historial de Preguntas"])
+        option = st.selectbox("FUNCIONES DE MÉDICO", ["Crear Paciente", "Ver Pacientes", "Gestionar Citas", "Eliminar Citas", "Eliminar Paciente", "Ver Historial de Preguntas", "Formulario de Satisfacción"]) 
     
     if option == "Crear Paciente":
         with st.form(key='create_patient_form'):
@@ -363,6 +368,10 @@ def medico_interface():
         else:
             st.error("Por favor, selecciona un paciente")
 
+    elif option == "Formulario de Satisfacción":
+        st.write("### Formulario de Satisfacción")
+        formulario_satisfaccion()
+
     # Colocar el botón de cerrar sesión en la parte inferior del sidebar
     with st.sidebar:
         st.write("---")
@@ -397,7 +406,7 @@ def supervisor_interface():
         """
         st.markdown(logo_html, unsafe_allow_html=True)
         st.write("CAIS - Care AI System")
-        option = st.selectbox("FUNCIONES DE SUPERVISOR", ["Crear Médico", "Eliminar Médico", "Ver Citas Médicas"])
+        option = st.selectbox("FUNCIONES DE SUPERVISOR", ["Crear Médico", "Eliminar Médico", "Ver Citas Médicas", "Ver Respuestas de Formularios"])
 
     if option == "Crear Médico":
         with st.form(key='create_medico_form'):
@@ -440,6 +449,69 @@ def supervisor_interface():
         else:
             st.error("Por favor, selecciona un médico")
 
+    elif option == "Ver Respuestas de Formularios":
+        st.write("### Respuestas de Formularios de Pacientes y Médicos")
+
+        # Obtener respuestas de formularios por rol
+        respuestas_pacientes = obtener_respuestas_formulario_por_rol('paciente')
+        respuestas_medicos = obtener_respuestas_formulario_por_rol('medico')
+
+        # Mostrar respuestas de pacientes
+        st.subheader("Respuestas de Pacientes")
+        if respuestas_pacientes:
+            df_pacientes = pd.DataFrame(respuestas_pacientes)
+            st.dataframe(df_pacientes)
+
+            # Calcular y mostrar las medias de las valoraciones
+            media_satisfaccion_pacientes = df_pacientes['satisfaccion'].mean()
+            media_funcionalidad_pacientes = df_pacientes['funcionalidad'].mean()
+            media_usabilidad_pacientes = df_pacientes['usabilidad'].mean()
+
+            st.write(f"Media de Satisfacción: {media_satisfaccion_pacientes:.2f}")
+            st.write(f"Media de Funcionalidad: {media_funcionalidad_pacientes:.2f}")
+            st.write(f"Media de Usabilidad: {media_usabilidad_pacientes:.2f}")
+
+            # Crear gráfico de barras para pacientes
+            st.subheader("Gráfico de Medias de Pacientes")
+            valores_pacientes = [media_satisfaccion_pacientes, media_funcionalidad_pacientes, media_usabilidad_pacientes]
+            etiquetas = ['Satisfacción', 'Funcionalidad', 'Usabilidad']
+
+            fig, ax = plt.subplots()
+            ax.bar(etiquetas, valores_pacientes, color=['blue', 'orange', 'green'])
+            ax.set_ylabel('Media')
+            ax.set_title('Medias de Valoraciones de Pacientes')
+            st.pyplot(fig)
+        else:
+            st.write("No hay respuestas de formularios de pacientes.")
+
+        # Mostrar respuestas de médicos
+        st.subheader("Respuestas de Médicos")
+        if respuestas_medicos:
+            df_medicos = pd.DataFrame(respuestas_medicos)
+            st.dataframe(df_medicos)
+
+            # Calcular y mostrar las medias de las valoraciones
+            media_satisfaccion_medicos = df_medicos['satisfaccion'].mean()
+            media_funcionalidad_medicos = df_medicos['funcionalidad'].mean()
+            media_usabilidad_medicos = df_medicos['usabilidad'].mean()
+
+            st.write(f"Media de Satisfacción: {media_satisfaccion_medicos:.2f}")
+            st.write(f"Media de Funcionalidad: {media_funcionalidad_medicos:.2f}")
+            st.write(f"Media de Usabilidad: {media_usabilidad_medicos:.2f}")
+
+            # Crear gráfico de barras para médicos
+            st.subheader("Gráfico de Medias de Médicos")
+            valores_medicos = [media_satisfaccion_medicos, media_funcionalidad_medicos, media_usabilidad_medicos]
+            etiquetas_medicos = ['Satisfacción', 'Funcionalidad', 'Usabilidad']
+
+            fig, ax = plt.subplots()
+            ax.bar(etiquetas_medicos, valores_medicos, color=['blue', 'orange', 'green'])
+            ax.set_ylabel('Media')
+            ax.set_title('Medias de Valoraciones de Médicos')
+            st.pyplot(fig)
+        else:
+            st.write("No hay respuestas de formularios de médicos.")
+
     # Colocar el botón de cerrar sesión en la parte inferior del sidebar
     with st.sidebar:
         st.write("---")
@@ -479,7 +551,7 @@ def paciente_interface():
         st.write("CAIS - Care AI System")
 
         # Definir las opciones de funcionalidad
-        options = ["Dashboard", "Chatbot", "Ver Citas", "Ver Historial de Preguntas"]
+        options = ["Dashboard", "Chatbot", "Ver Citas", "Ver Historial de Preguntas", "Formulario de Satisfacción"]
         
         # Manejar el valor por defecto del selectbox
         option = st.selectbox(
@@ -608,6 +680,10 @@ def paciente_interface():
                 st.write("---")
         else:
             st.write("No hay preguntas registradas.")
+    
+    elif st.session_state.option == "Formulario de Satisfacción":
+        st.write("### Formulario de Satisfacción")
+        formulario_satisfaccion()
 
     # Colocar el botón de cerrar sesión en la parte inferior del sidebar
     with st.sidebar:
@@ -619,6 +695,38 @@ def paciente_interface():
             st.session_state.short_term_memory = []
             st.session_state.medico_id = None
             st.rerun()
+
+
+def formulario_satisfaccion():
+    # Obtener el rol y estado del formulario del usuario
+    usuario = st.session_state.username
+    rol = st.session_state.role
+    
+    # Verificar si el formulario ya fue completado en la sesión o en la base de datos
+    formulario_completado = st.session_state.get("formulario_completado", False) or obtener_estado_formulario(usuario)
+
+    if formulario_completado:
+        st.write("Formulario ya respondido. ¡Muchas gracias!")
+    else:
+        st.write(f"Formulario de satisfacción para {rol.capitalize()}")
+
+        # Formulario de satisfacción
+        with st.form("Formulario de Satisfacción"):
+            satisfaccion = st.slider("¿Cómo calificarías tu satisfacción general?", 1, 5, 3)
+            funcionalidad = st.slider("¿Cómo calificarías la funcionalidad de la app?", 1, 5, 3)
+            usabilidad = st.slider("¿Cómo calificarías la usabilidad de la app?", 1, 5, 3)
+            mejoras = st.text_area("¿Tienes alguna sugerencia de mejora?", "")
+            submit_button = st.form_submit_button("Enviar")
+
+            if submit_button:
+                # Almacenar la respuesta en la base de datos
+                guardar_respuesta_formulario(usuario, rol, satisfaccion, funcionalidad, usabilidad, mejoras)
+                actualizar_estado_formulario(usuario)
+
+                # Marcar el formulario como completado en la sesión actual
+                st.session_state["formulario_completado"] = True
+                st.success("¡Gracias por tu respuesta!")
+
 
 
 if __name__ == "__main__":
