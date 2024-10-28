@@ -245,9 +245,10 @@ def medico_interface():
     logo.save(buffered, format="PNG")
     logo_base64 = base64.b64encode(buffered.getvalue()).decode()
 
-
+    # Título de la interfaz
     st.title("Interfaz del Médico")
-    
+
+    # Sidebar con logo y menú de opciones
     with st.sidebar:
         logo_html = f"""
         <div style="text-align: center; margin-bottom: 20px;">
@@ -256,9 +257,27 @@ def medico_interface():
         """
         st.markdown(logo_html, unsafe_allow_html=True)
         st.write("CAIS - Care AI System")
-        option = st.selectbox("FUNCIONES DE MÉDICO", ["Crear Paciente", "Ver Pacientes", "Gestionar Citas", "Eliminar Citas", "Eliminar Paciente", "Ver Historial de Preguntas", "Formulario de Satisfacción"]) 
-    
-    if option == "Crear Paciente":
+        option = st.selectbox(
+            "FUNCIONES DE MÉDICO", 
+            ["Dashboard", "Crear Paciente", "Ver Pacientes", "Gestionar Citas", "Eliminar Citas", "Eliminar Paciente", "Ver Historial de Preguntas", "Formulario de Satisfacción"]
+        )
+
+    # Pantalla de inicio o dashboard
+    if option == "Dashboard":
+        st.subheader(f"Bienvenido, {st.session_state.username} 👋")
+        st.write("""
+            Esta es la interfaz principal de médico. Aquí puedes realizar las siguientes acciones:
+            - **Crear Paciente**: Registra un nuevo paciente en el sistema.
+            - **Ver Pacientes**: Visualiza y gestiona tu lista de pacientes.
+            - **Gestionar Citas**: Programa y administra tus citas con los pacientes.
+            - **Eliminar Citas**: Cancela citas programadas.
+            - **Eliminar Paciente**: Retira a un paciente de tu lista.
+            - **Ver Historial de Preguntas**: Consulta las preguntas y respuestas de tus pacientes.
+            - **Formulario de Satisfacción**: Completa un formulario para ayudar a mejorar el sistema.
+        """)
+        
+    # Funcionalidades específicas del médico
+    elif option == "Crear Paciente":
         with st.form(key='create_patient_form'):
             st.write("CREAR PACIENTE")
             username = st.text_input("Nombre de usuario")
@@ -357,7 +376,7 @@ def medico_interface():
         selected_patient_username = selected_patient.split(' (')[1].strip(')')
 
         if selected_patient_username:
-            questions = get_patient_questions(selected_patient_username, st.session_state.username)  # Proporcionar ambos argumentos
+            questions = get_patient_questions(selected_patient_username, st.session_state.username)
             if questions:
                 for question in questions:
                     st.write(f"**Pregunta:** {question['question']}")
@@ -398,6 +417,23 @@ def supervisor_interface():
     # Usar una lista de opciones para selección
     medico_options = [medico[0] for medico in medicos]  # Solo los nombres de usuario de los médicos
 
+    # Estado inicial para mostrar el dashboard de bienvenida
+    if 'supervisor_dashboard' not in st.session_state:
+        st.session_state.supervisor_dashboard = True  # Controla si está en el dashboard inicial
+
+    # Mostrar la bienvenida del supervisor en el dashboard inicial
+    if st.session_state.supervisor_dashboard:
+        st.subheader(f"Bienvenido, {st.session_state.username}")
+        st.write("Como supervisor, puedes realizar las siguientes funciones en el sistema CAIS:")
+        st.markdown("""
+            - **Crear Médico**: Agrega un nuevo médico al sistema.
+            - **Eliminar Médico**: Elimina médicos registrados.
+            - **Ver Citas Médicas**: Consulta las citas programadas de cada médico.
+            - **Ver Respuestas de Formularios**: Revisa las respuestas de satisfacción proporcionadas por los pacientes y médicos.
+        """)
+        st.write("Selecciona una opción del menú lateral para empezar.")
+    
+    # Barra lateral de opciones
     with st.sidebar:
         logo_html = f"""
         <div style="text-align: center; margin-bottom: 20px;">
@@ -406,8 +442,13 @@ def supervisor_interface():
         """
         st.markdown(logo_html, unsafe_allow_html=True)
         st.write("CAIS - Care AI System")
-        option = st.selectbox("FUNCIONES DE SUPERVISOR", ["Crear Médico", "Eliminar Médico", "Ver Citas Médicas", "Ver Respuestas de Formularios"])
+        option = st.selectbox("FUNCIONES DE SUPERVISOR", ["Dashboard", "Crear Médico", "Eliminar Médico", "Ver Citas Médicas", "Ver Respuestas de Formularios"])
 
+    # Ocultar el dashboard si se selecciona alguna otra opción
+    if option != "Dashboard":
+        st.session_state.supervisor_dashboard = False
+
+    # Definir funcionalidades según la opción seleccionada
     if option == "Crear Médico":
         with st.form(key='create_medico_form'):
             st.write("CREAR MÉDICO")
@@ -512,7 +553,7 @@ def supervisor_interface():
         else:
             st.write("No hay respuestas de formularios de médicos.")
 
-    # Colocar el botón de cerrar sesión en la parte inferior del sidebar
+    # Botón de cerrar sesión en la barra lateral
     with st.sidebar:
         st.write("---")
         if st.button("Cerrar sesión"):
@@ -520,7 +561,7 @@ def supervisor_interface():
             st.session_state.role = None
             st.session_state.history = []
             st.session_state.short_term_memory = []
-            st.session_state.medico_id = None
+            st.session_state.supervisor_dashboard = True
             st.rerun()
 
 
