@@ -17,6 +17,33 @@ import base64
 import matplotlib.pyplot as plt
 from chatbot.chatbot import get_answer
 
+# Configuración inicial de la página
+st.set_page_config(page_title="CAIS - CARE AI SYSTEM", page_icon=":hospital:", layout="wide")
+
+# Estilo de cabecera
+st.markdown(
+    """
+    <style>
+    .header {
+        font-size: 30px;
+        font-weight: bold;
+        color: #4CAF50;
+        text-align: center;
+        margin-top: 20px;
+    }
+    .subheader {
+        font-size: 20px;
+        color: #555;
+        text-align: center;
+        margin-bottom: 40px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+
+
 # Inicializar session_state si no está presente
 if 'username' not in st.session_state:
     st.session_state.username = None
