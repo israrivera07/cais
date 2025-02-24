@@ -7,8 +7,8 @@ def get_db_connection():
         dbname="mydatabase",
         user="postgres",
         password="isra7303",
-        host="4.tcp.eu.ngrok.io",  # Cambia localhost por la URL de ngrok
-        port="15153",               # Cambia el puerto por el que te ha dado ngrok
+        host="5.tcp.eu.ngrok.io",  # Cambia localhost por la URL de ngrok
+        port="17422",               # Cambia el puerto por el que te ha dado ngrok
         options='-c client_encoding=UTF8'
     )
 
