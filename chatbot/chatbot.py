@@ -3,12 +3,17 @@ import pandas as pd
 import tiktoken
 import asyncio
 from dotenv import load_dotenv
-from graphrag.query.indexer_adapters import read_indexer_entities, read_indexer_reports
+from graphrag.query.indexer_adapters import (
+    read_indexer_entities,
+    read_indexer_reports,
+    read_indexer_communities  # Asegúrate de que esta función esté disponible
+)
 from graphrag.query.llm.oai.chat_openai import ChatOpenAI
 from graphrag.query.llm.oai.typing import OpenaiApiType
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
 
+# Carga de variables de entorno
 load_dotenv(dotenv_path=".env")
 
 api_key = os.getenv("GRAPHRAG_API_KEY")
@@ -17,22 +22,31 @@ llm_model = "gpt-4o-mini-2024-07-18"
 llm = ChatOpenAI(api_key=api_key, model=llm_model, api_type=OpenaiApiType.OpenAI, max_retries=20)
 token_encoder = tiktoken.get_encoding("cl100k_base")
 
+# Directorios de entrada
 script_dir = os.path.dirname(os.path.abspath(__file__))
 input_dir = os.path.join(script_dir, '..', 'input', 'artifacts')
 
+# Archivos de datos
 entity_file = os.path.join(input_dir, 'create_final_nodes.parquet')
 report_file = os.path.join(input_dir, 'create_final_community_reports.parquet')
 entity_embedding_file = os.path.join(input_dir, 'create_final_entities.parquet')
+community_file = os.path.join(input_dir, 'create_final_communities.parquet')  # Nuevo archivo
 
+# Lectura de datos
 entity_df = pd.read_parquet(entity_file)
 report_df = pd.read_parquet(report_file)
 entity_embedding_df = pd.read_parquet(entity_embedding_file)
+community_df = pd.read_parquet(community_file)  # Lectura del archivo de comunidades
 
+# Conversión a objetos de graphrag
 reports = read_indexer_reports(report_df, entity_df, 2)
 entities = read_indexer_entities(entity_df, entity_embedding_df, 2)
+communities = read_indexer_communities(community_df, entity_df, report_df)  # Conversión a objetos Community
 
+# Creación del contexto
 context_builder = GlobalCommunityContext(
     community_reports=reports,
+    communities=communities,  # Proporciona la lista de comunidades aquí
     entities=entities,
     token_encoder=token_encoder,
 )
