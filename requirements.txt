@@ -6,5 +6,5 @@ tiktoken
 openai
 python-dotenv
 asyncio
-graphrag
+graphrag==1.2
 pyarrow
