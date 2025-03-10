@@ -158,10 +158,12 @@ def write_progressively(text, placeholder, delay=0.05):
 def chatbot_interface():
     st.title("Chatbot del paciente")
     st.write("Bienvenido a nuestro asistente médico virtual. Aquí puedes hacer preguntas relacionadas con tu salud y obtener respuestas inmediatas. Estoy especializado en hernia inguinal, apendicectomía, colecistectomía y cirugía coloproctológica.")
-    st.write("### Conversación")
-
-    # Crear un contenedor para la conversación
-    conversation_placeholder = st.container()
+    
+    # Inicializar la sesión si no existe
+    if "history" not in st.session_state:
+        st.session_state.history = []
+    if "short_term_memory" not in st.session_state:
+        st.session_state.short_term_memory = []
 
     # Mostrar el historial de preguntas en la barra lateral
     with st.sidebar:
@@ -169,7 +171,6 @@ def chatbot_interface():
         for message in st.session_state.history:
             if message['sender'] == 'Usuario':
                 st.write(f"**{message['sender']}:** {message['text']}")
-
 
     # Preguntas sugeridas
     suggested_questions = [
@@ -179,88 +180,46 @@ def chatbot_interface():
         "¿Qué es la cirugía coloproctológica?"
     ]
     
-    # Mostrar preguntas sugeridas si aún no se ha hecho ninguna pregunta
     if len(st.session_state.history) == 0:
         st.write("### Preguntas Sugeridas")
-        cols = st.columns(4)
-        for i, question in enumerate(suggested_questions):
-            if cols[i].button(question):
-                user_input = question
-                st.session_state.short_term_memory.append(user_input)
-                st.session_state.history.append({'sender': 'Usuario', 'text': user_input})
+        for question in suggested_questions:
+            if st.button(question):
+                process_user_input(question)
 
-                # Mostrar la pregunta del usuario en el contenedor de conversación
-                with conversation_placeholder:
-                    st.markdown(f"<div style='background-color: #e1f5fe; color: black; padding: 10px; border-radius: 5px; margin-bottom: 5px;'><strong>Usuario:</strong> {user_input}</div>", unsafe_allow_html=True)
-                
-                # Obtener la respuesta del chatbot
-                response = asyncio.run(get_answer(user_input, st.session_state.short_term_memory))
+    # Chat utilizando st.chat_message()
+    for message in st.session_state.history:
+        with st.chat_message("user" if message['sender'] == "Usuario" else "assistant"):
+            st.markdown(message['text'])
 
-                # Mostrar la respuesta del chatbot de manera progresiva
-                with conversation_placeholder:
-                    write_progressively(response, st.empty())
-                
-                # Añadir la respuesta del chatbot al historial
-                st.session_state.history.append({'sender': 'Chatbot', 'text': response})
-                st.session_state.short_term_memory.append(response)
+    # Entrada del usuario con st.chat_input()
+    user_input = st.chat_input("Escribe tu mensaje:")
+    if user_input:
+        process_user_input(user_input)
 
-                # Mantener un máximo de 5 elementos en la memoria a corto plazo
-                if len(st.session_state.short_term_memory) > 5:
-                    st.session_state.short_term_memory.pop(0)
+def process_user_input(user_input):
+    """Procesa la entrada del usuario y gestiona la respuesta del chatbot."""
+    st.session_state.short_term_memory.append(user_input)
+    st.session_state.history.append({'sender': 'Usuario', 'text': user_input})
 
-                # Verificar si medico_id está presente antes de intentar añadir la pregunta y respuesta a la base de datos
-                if st.session_state.medico_id:
-                    # Añadir la pregunta y respuesta a la base de datos
-                    add_question(st.session_state.username, st.session_state.medico_id, user_input, response)
-                else:
-                    st.error("Error: No se ha asignado medico_id al paciente.")
-
-                # Volver a cargar la aplicación para reflejar los cambios
-                st.rerun()
+    with st.chat_message("user"):
+        st.markdown(user_input)
     
-    # Mostrar el historial de la conversación
-    with conversation_placeholder:
-        for message in st.session_state.history:
-            if message['sender'] == 'Usuario':
-                st.markdown(f"<div style='background-color: #e1f5fe; color: black; padding: 10px; border-radius: 5px; margin-bottom: 5px;'><strong>{message['sender']}:</strong> {message['text']}</div>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<div style='background-color: #e8f5e9; color: black; padding: 10px; border-radius: 5px; margin-bottom: 5px;'><strong>{message['sender']}:</strong> {message['text']}</div>", unsafe_allow_html=True)
+    response = asyncio.run(get_answer(user_input, st.session_state.short_term_memory))
+    
+    with st.chat_message("assistant"):
+        write_progressively(response, st.empty())
+    
+    st.session_state.history.append({'sender': 'Chatbot', 'text': response})
+    st.session_state.short_term_memory.append(response)
 
-    user_input = st.text_input("Escribe tu mensaje:")
+    if len(st.session_state.short_term_memory) > 5:
+        st.session_state.short_term_memory.pop(0)
 
-    if st.button("Enviar") and user_input:
-        # Añadir la pregunta del usuario al historial
-        st.session_state.short_term_memory.append(user_input)
-        st.session_state.history.append({'sender': 'Usuario', 'text': user_input})
-
-        # Mostrar la pregunta del usuario en el contenedor de conversación
-        with conversation_placeholder:
-            st.markdown(f"<div style='background-color: #e1f5fe; color: black; padding: 10px; border-radius: 5px; margin-bottom: 5px;'><strong>Usuario:</strong> {user_input}</div>", unsafe_allow_html=True)
-        
-        # Obtener la respuesta del chatbot
-        response = asyncio.run(get_answer(user_input, st.session_state.short_term_memory))
-        
-        # Mostrar la respuesta del chatbot de manera progresiva
-        with conversation_placeholder:
-            write_progressively(response, st.empty())
-        
-        # Añadir la respuesta del chatbot al historial
-        st.session_state.history.append({'sender': 'Chatbot', 'text': response})
-        st.session_state.short_term_memory.append(response)
-
-        # Mantener un máximo de 5 elementos en la memoria a corto plazo
-        if len(st.session_state.short_term_memory) > 5:
-            st.session_state.short_term_memory.pop(0)
-
-        # Verificar si medico_id está presente antes de intentar añadir la pregunta y respuesta a la base de datos
-        if st.session_state.medico_id:
-            # Añadir la pregunta y respuesta a la base de datos
-            add_question(st.session_state.username, st.session_state.medico_id, user_input, response)
-        else:
-            st.error("Error: No se ha asignado medico_id al paciente.")
-
-        # Volver a cargar la aplicación para reflejar los cambios
-        st.rerun()
+    if "medico_id" in st.session_state and st.session_state.medico_id:
+        add_question(st.session_state.username, st.session_state.medico_id, user_input, response)
+        print(f"Pregunta añadida a la base de datos: {user_input} -> {response}")
+    else:
+        st.error("Error: No se ha asignado medico_id al paciente.")
 
 
 def medico_interface():
