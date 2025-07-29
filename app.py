@@ -20,28 +20,30 @@ from chatbot.chatbot import get_answer
 # Configuración inicial de la página
 st.set_page_config(page_title="CAIS - CARE AI SYSTEM", page_icon=":hospital:", layout="wide")
 
-# Estilo de cabecera
-st.markdown(
-    """
+# Añadir esto después de los imports:
+st.markdown("""
     <style>
-    .header {
-        font-size: 30px;
-        font-weight: bold;
-        color: #4CAF50;
-        text-align: center;
-        margin-top: 20px;
-    }
-    .subheader {
-        font-size: 20px;
-        color: #555;
-        text-align: center;
-        margin-bottom: 40px;
-    }
+        /* Fuentes y colores generales */
+        body {
+            font-family: 'Arial', sans-serif;
+            color: #333;
+        }
+        /* Tarjetas */
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        /* Botones principales */
+        .stButton>button {
+            background-color: #0077B6;
+            color: white;
+            border-radius: 5px;
+        }
     </style>
-    """,
-    unsafe_allow_html=True
-)
-
+""", unsafe_allow_html=True)
 
 
 # Inicializar session_state si no está presente
@@ -60,8 +62,7 @@ if 'medico_id' not in st.session_state:
 
 def main():
     if st.session_state.username:
-        st.success(f"Has iniciado sesión como: {st.session_state.username}")
-
+        
         if st.session_state.role == "paciente":
             st.write(f"Bienvenido {get_real_name(st.session_state.username)}!")
             st.session_state.medico_id = get_medico_id_for_patient(st.session_state.username)  # Asignar medico_id al paciente
@@ -149,11 +150,18 @@ def show_loading_screen():
     st.success("¡Inicio de sesión exitoso!")
 
 def write_progressively(text, placeholder, delay=0.05):
-    """Escribe el texto de manera progresiva en el placeholder."""
-    for i in range(len(text) + 1):
-        placeholder.markdown(f"<div style='background-color: #e8f5e9; color: black; padding: 10px; border-radius: 5px; margin-bottom: 5px;'><strong>Chatbot:</strong> {text[:i]}</div>", unsafe_allow_html=True)
+    """Escribe el texto de manera progresiva"""
+    placeholder.markdown("")  # Limpiar primero
+    full_response = ""
+    for chunk in text.split():
+        full_response += chunk + " "
+        placeholder.markdown(f"""
+            <div style='background: #f0f2f6; color: #333; border-radius: 10px 10px 10px 0; padding: 10px; margin: 5px 0;'>
+                {full_response}
+            </div>
+        """, unsafe_allow_html=True)
         time.sleep(delay)
-    placeholder.markdown(f"<div style='background-color: #e8f5e9; color: black; padding: 10px; border-radius: 5px; margin-bottom: 5px;'><strong>Chatbot:</strong> {text}</div>", unsafe_allow_html=True)  # Asegúrate de mostrar el texto completo al final
+    return full_response
 
 def chatbot_interface():
     st.title("Chatbot del paciente")
@@ -164,6 +172,8 @@ def chatbot_interface():
         st.session_state.history = []
     if "short_term_memory" not in st.session_state:
         st.session_state.short_term_memory = []
+    if "first_interaction" not in st.session_state:
+        st.session_state.first_interaction = True
 
     # Mostrar el historial de preguntas en la barra lateral
     with st.sidebar:
@@ -172,54 +182,79 @@ def chatbot_interface():
             if message['sender'] == 'Usuario':
                 st.write(f"**{message['sender']}:** {message['text']}")
 
-    # Preguntas sugeridas
-    suggested_questions = [
-        "¿Cuáles son los síntomas de una hernia inguinal?",
-        "¿Cuándo es necesaria una apendicectomía?",
-        "¿Qué cuidados postoperatorios debo tener después de una colecistectomía?",
-        "¿Qué es la cirugía coloproctológica?"
-    ]
-    
-    if len(st.session_state.history) == 0:
-        st.write("### Preguntas Sugeridas")
-        for question in suggested_questions:
-            if st.button(question):
-                process_user_input(question)
+    # Preguntas sugeridas solo en la primera interacción
+    if st.session_state.first_interaction:
+        suggested_questions = [
+            "¿Cuáles son los síntomas de una hernia inguinal?",
+            "¿Cuándo es necesaria una apendicectomía?",
+            "¿Qué cuidados postoperatorios debo tener después de una colecistectomía?",
+            "¿Qué es la cirugía coloproctológica?"
+        ]
+        
+        with st.expander("¿Necesitas ayuda? Prueba estas preguntas:"):
+            for question in suggested_questions:
+                if st.button(question, key=f"suggested_{question}"):
+                    process_user_input(question)
+                    st.session_state.first_interaction = False
+                    st.rerun()
 
-    # Chat utilizando st.chat_message()
+    # Mostrar historial de conversación
     for message in st.session_state.history:
-        with st.chat_message("user" if message['sender'] == "Usuario" else "assistant"):
-            st.markdown(message['text'])
+        if message['sender'] == "Usuario":
+            with st.chat_message("user", avatar="👤"):
+                st.markdown(f"""
+                    <div style='background: #0077B6; color: white; border-radius: 10px 10px 0 10px; padding: 10px; margin: 5px 0;'>
+                        {message['text']}
+                    </div>
+                """, unsafe_allow_html=True)
+        else:
+            with st.chat_message("assistant", avatar="logo_cais.png"):
+                st.markdown(f"""
+                    <div style='background: #f0f2f6; color: #333; border-radius: 10px 10px 10px 0; padding: 10px; margin: 5px 0;'>
+                        {message['text']}
+                    </div>
+                """, unsafe_allow_html=True)
 
-    # Entrada del usuario con st.chat_input()
+    # Entrada del usuario
     user_input = st.chat_input("Escribe tu mensaje:")
     if user_input:
+        if st.session_state.first_interaction:
+            st.session_state.first_interaction = False
         process_user_input(user_input)
 
 def process_user_input(user_input):
     """Procesa la entrada del usuario y gestiona la respuesta del chatbot."""
     st.session_state.short_term_memory.append(user_input)
     st.session_state.history.append({'sender': 'Usuario', 'text': user_input})
-
-    with st.chat_message("user"):
-        st.markdown(user_input)
     
-    response = asyncio.run(get_answer(user_input, st.session_state.short_term_memory))
+    # Mostrar input del usuario
+    with st.chat_message("user", avatar="👤"):
+        st.markdown(f"""
+            <div style='background: #0077B6; color: white; border-radius: 10px 10px 0 10px; padding: 10px; margin: 5px 0;'>
+                {user_input}
+            </div>
+        """, unsafe_allow_html=True)
     
-    with st.chat_message("assistant"):
-        write_progressively(response, st.empty())
+    # Generar y mostrar respuesta
+    with st.chat_message("assistant", avatar="⚕️"):
+        response_placeholder = st.empty()
+        with st.spinner("El asistente está pensando..."):
+            response = asyncio.run(get_answer(user_input, st.session_state.short_term_memory))
+            full_response = write_progressively(response, response_placeholder)
     
-    st.session_state.history.append({'sender': 'Chatbot', 'text': response})
-    st.session_state.short_term_memory.append(response)
+    st.session_state.history.append({'sender': 'Chatbot', 'text': full_response})
+    st.session_state.short_term_memory.append(full_response)
 
     if len(st.session_state.short_term_memory) > 5:
         st.session_state.short_term_memory.pop(0)
 
     if "medico_id" in st.session_state and st.session_state.medico_id:
-        add_question(st.session_state.username, st.session_state.medico_id, user_input, response)
-        print(f"Pregunta añadida a la base de datos: {user_input} -> {response}")
+        add_question(st.session_state.username, st.session_state.medico_id, user_input, full_response)
+        print(f"Pregunta añadida a la base de datos: {user_input} -> {full_response}")
     else:
         st.error("Error: No se ha asignado medico_id al paciente.")
+    
+    st.rerun()
 
 
 def medico_interface():
@@ -591,7 +626,26 @@ def paciente_interface():
     # Mostrar bienvenida inicial
     if st.session_state.get("first_login", True):
         st.session_state.option = None
-        st.markdown("<h1 style='text-align: center; color: #4CAF50;'>Bienvenido!</h1>", unsafe_allow_html=True)
+        st.markdown("""
+                <h1 style='
+                    text-align: center; 
+                    color: #06bcbf;  /* Verde más oscuro/médico */
+                    font-family: 'Roboto', sans-serif;
+                    font-size: 2em;  /* Más compacto */
+                    margin: 10px 0 5px 0;
+                    padding: 8px;
+                    background-color: #E8F5E9;  /* Fondo verde claro */
+                    border-radius: 8px;
+                    border-left: 4px solid #06bcbf;
+                '>Bienvenido a <strong>CAIS</strong></h1>
+                
+                <p style='
+                    text-align: center;
+                    color: #026c6e;
+                    font-family: 'Roboto', sans-serif;
+                    margin-bottom: 20px;
+                '>Care AI System</p>
+            """, unsafe_allow_html=True)
 
         # Botones de bienvenida
         col1, col2, col3 = st.columns(3)
@@ -657,15 +711,15 @@ def paciente_interface():
 
         # Recuadro para el nombre del paciente
         with col1:
-            st.markdown(f"<div style='background-color:#E8F5E9; padding: 10px; border-radius: 5px;'>"
-                        f"<h2 style='text-align: center; color: #4CAF50;'>Paciente: {real_name}</h2>"
-                        f"</div>", unsafe_allow_html=True)
+            st.markdown(f"""<div style='background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;'>
+                        <h2 style='color: #0077B6; text-align: center;'>👤 {real_name}</h2>
+                        </div>""", unsafe_allow_html=True)
 
         # Recuadro para el nombre del médico asignado
         with col2:
-            st.markdown(f"<div style='background-color:#E8F5E9; padding: 10px; border-radius: 5px;'>"
-                        f"<h3 style='text-align: center; color: #4CAF50;'>Médico Asignado: {medico_name}</h3>"
-                        f"</div>", unsafe_allow_html=True)
+            st.markdown(f"""<div style='background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;'>
+                        <h3 style='text-align: center; color: #555;'>⚕️Médico Asignado: {medico_name}</h3>
+                        </div>""", unsafe_allow_html=True)
 
         # Obtener las preguntas del paciente
         questions = get_patient_questions(st.session_state.username, medico_id)
@@ -681,7 +735,6 @@ def paciente_interface():
 
     # Opciones funcionales del paciente
     elif st.session_state.option == "Chatbot":
-        st.write("### Chatbot")
         st.session_state.medico_id = get_medico_id_from_database(st.session_state.username)
         if not st.session_state.medico_id:
             st.error("No se pudo encontrar el médico asignado para el paciente.")
@@ -723,7 +776,6 @@ def paciente_interface():
             st.session_state.medico_id = None
             st.rerun()
 
-
 def formulario_satisfaccion():
     # Obtener el rol y estado del formulario del usuario
     usuario = st.session_state.username
@@ -752,7 +804,7 @@ def formulario_satisfaccion():
 
                 # Marcar el formulario como completado en la sesión actual
                 st.session_state["formulario_completado"] = True
-                st.success("¡Gracias por tu respuesta!")
+                st.toast("¡Gracias por tu feedback!", icon="👏")
 
 
 
